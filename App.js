@@ -148,9 +148,19 @@ function ControlsContainer({
   );
 }
 function ParticipantView({participantId}) {
-  const {webcamStream, webcamOn} = useParticipant(participantId);
-
-  return webcamOn && webcamStream ? (
+  const {webcamStream, webcamOn, screenShareStream, screenShareOn} =
+    useParticipant(participantId);
+  return screenShareStream && screenShareOn ? (
+    <RTCView
+      streamURL={new MediaStream([screenShareStream.track]).toURL()}
+      objectFit={'cover'}
+      style={{
+        height: 300,
+        marginVertical: 8,
+        marginHorizontal: 8,
+      }}
+    />
+  ) : webcamOn && webcamStream ? (
     <RTCView
       streamURL={new MediaStream([webcamStream.track]).toURL()}
       objectFit={'cover'}
@@ -196,6 +206,9 @@ function ParticipantList({participants}) {
 
 function MeetingView() {
   // Get `participants` from useMeeting Hook
+  function onPresenterChanged(presenterId) {
+    console.log(' onPresenterChanged', presenterId);
+  }
   const {
     join,
     leave,
@@ -206,30 +219,27 @@ function MeetingView() {
     presenterId,
     changeWebcam,
   } = useMeeting({onPresenterChanged});
-  console.log('presenterId', presenterId);
   const participantsArrId = [...participants.keys()];
 
-  const {webcamOn, webcamStream, displayName, setQuality, isLocal, micOn} =
+  function onStreamEnabled(stream) {
+    if (stream.kind === 'share') {
+      console.log('Screen Share Stream On: onStreamEnabled', stream);
+    }
+  }
+
+  function onStreamDisabled(stream) {
+    if (stream.kind === 'share') {
+      console.log('Screen Share Stream Off: onStreamDisabled', stream);
+    }
+  }
+  const {webcamOn, screenShareStream, displayName, setQuality, isLocal, micOn} =
     useParticipant(presenterId, {
       onStreamEnabled,
       onStreamDisabled,
     });
-  console.log('webcamStream', webcamStream);
   return (
     <View style={{flex: 1}}>
       <ParticipantList participants={participantsArrId} />
-      {presenterId && webcamStream && (
-        <RTCView
-          streamURL={new MediaStream([webcamStream.track]).toURL()}
-          objectFit={'cover'}
-          mirror={isLocal ? true : false}
-          style={{
-            height: 300,
-            marginVertical: 8,
-            marginHorizontal: 8,
-          }}
-        />
-      )}
 
       <ControlsContainer
         join={join}
