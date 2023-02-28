@@ -205,15 +205,19 @@ function MeetingView() {
     enableScreenShare,
     presenterId,
     changeWebcam,
-  } = useMeeting({});
+  } = useMeeting({onPresenterChanged});
   console.log('presenterId', presenterId);
   const participantsArrId = [...participants.keys()];
+
   const {webcamOn, webcamStream, displayName, setQuality, isLocal, micOn} =
-    useParticipant(presenterId, {});
+    useParticipant(presenterId, {
+      onStreamEnabled,
+      onStreamDisabled,
+    });
   console.log('webcamStream', webcamStream);
   return (
     <View style={{flex: 1}}>
-      {!presenterId && <ParticipantList participants={participantsArrId} />}
+      <ParticipantList participants={participantsArrId} />
       {presenterId && webcamStream && (
         <RTCView
           streamURL={new MediaStream([webcamStream.track]).toURL()}
@@ -247,22 +251,22 @@ export default function App() {
     console.log('meetingId', meetingId);
     setMeetingId(meetingId);
   };
-  React.useEffect(() => {
-    if (Platform.OS == 'ios') {
-      VideosdkRPK.addListener('onScreenShare', event => {
-        console.log('event', event);
-        if (event === 'START_BROADCAST') {
-          enableScreenShare();
-        } else if (event === 'STOP_BROADCAST') {
-          disableScreenShare();
-        }
-      });
+  // React.useEffect(() => {
+  //   if (Platform.OS == 'ios') {
+  //     VideosdkRPK.addListener('onScreenShare', event => {
+  //       console.log('event', event);
+  //       if (event === 'START_BROADCAST') {
+  //         enableScreenShare();
+  //       } else if (event === 'STOP_BROADCAST') {
+  //         disableScreenShare();
+  //       }
+  //     });
 
-      return () => {
-        VideosdkRPK.removeSubscription('onScreenShare');
-      };
-    }
-  }, []);
+  //     return () => {
+  //       VideosdkRPK.removeSubscription('onScreenShare');
+  //     };
+  //   }
+  // }, []);
   React.useEffect(
     React.useCallback(() => {
       mediaDevices
