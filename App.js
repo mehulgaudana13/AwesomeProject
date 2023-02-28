@@ -16,6 +16,7 @@ import {
   mediaDevices,
 } from '@videosdk.live/react-native-sdk';
 import {createMeeting, token} from './api';
+import VideosdkRPK from './VideosdkRPK';
 // import { useFocusEffect } from "@react-navigation/native";
 
 function JoinScreen(props) {
@@ -93,7 +94,13 @@ const Button = ({onPress, buttonText, backgroundColor}) => {
   );
 };
 
-function ControlsContainer({join, leave, toggleWebcam, toggleMic}) {
+function ControlsContainer({
+  join,
+  leave,
+  toggleWebcam,
+  enableScreenShare,
+  chageWeb,
+}) {
   return (
     <View
       style={{
@@ -117,7 +124,8 @@ function ControlsContainer({join, leave, toggleWebcam, toggleMic}) {
       />
       <Button
         onPress={() => {
-          toggleMic();
+          // toggleMic();
+          enableScreenShare();
         }}
         buttonText={'Toggle Mic'}
         backgroundColor={'#1178F8'}
@@ -127,6 +135,13 @@ function ControlsContainer({join, leave, toggleWebcam, toggleMic}) {
           leave();
         }}
         buttonText={'Leave'}
+        backgroundColor={'#FF0000'}
+      />
+      <Button
+        onPress={() => {
+          chageWeb();
+        }}
+        buttonText={'cccc'}
         backgroundColor={'#FF0000'}
       />
     </View>
@@ -178,19 +193,47 @@ function ParticipantList({participants}) {
     </View>
   );
 }
+
 function MeetingView() {
   // Get `participants` from useMeeting Hook
-  const {join, leave, toggleWebcam, toggleMic, participants} = useMeeting({});
+  const {
+    join,
+    leave,
+    toggleWebcam,
+    toggleMic,
+    participants,
+    enableScreenShare,
+    presenterId,
+    changeWebcam,
+  } = useMeeting({});
+  console.log('presenterId', presenterId);
   const participantsArrId = [...participants.keys()];
-
+  const {webcamOn, webcamStream, displayName, setQuality, isLocal, micOn} =
+    useParticipant(presenterId, {});
+  console.log('webcamStream', webcamStream);
   return (
     <View style={{flex: 1}}>
-      <ParticipantList participants={participantsArrId} />
+      {!presenterId && <ParticipantList participants={participantsArrId} />}
+      {presenterId && webcamStream && (
+        <RTCView
+          streamURL={new MediaStream([webcamStream.track]).toURL()}
+          objectFit={'cover'}
+          mirror={isLocal ? true : false}
+          style={{
+            height: 300,
+            marginVertical: 8,
+            marginHorizontal: 8,
+          }}
+        />
+      )}
+
       <ControlsContainer
         join={join}
         leave={leave}
         toggleWebcam={toggleWebcam}
         toggleMic={toggleMic}
+        enableScreenShare={enableScreenShare}
+        chageWeb={changeWebcam}
       />
     </View>
   );
@@ -201,8 +244,25 @@ export default function App() {
 
   const getMeetingId = async id => {
     const meetingId = id == null ? await createMeeting({token}) : id;
+    console.log('meetingId', meetingId);
     setMeetingId(meetingId);
   };
+  React.useEffect(() => {
+    if (Platform.OS == 'ios') {
+      VideosdkRPK.addListener('onScreenShare', event => {
+        console.log('event', event);
+        if (event === 'START_BROADCAST') {
+          enableScreenShare();
+        } else if (event === 'STOP_BROADCAST') {
+          disableScreenShare();
+        }
+      });
+
+      return () => {
+        VideosdkRPK.removeSubscription('onScreenShare');
+      };
+    }
+  }, []);
   React.useEffect(
     React.useCallback(() => {
       mediaDevices
