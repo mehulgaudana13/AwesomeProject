@@ -293,6 +293,7 @@ export default function App() {
 
   return meetingId ? (
     <SafeAreaView style={{flex: 1, backgroundColor: '#F6F6FF'}}>
+      <Text>MeetingID:{meetingId}</Text>
       <MeetingProvider
         config={{
           meetingId,
